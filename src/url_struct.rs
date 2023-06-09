@@ -1,6 +1,3 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -11,38 +8,32 @@ pub struct UrlData {
 }
 
 
-pub fn build_url_data(n: String, u: String, t: Vec<String>) -> UrlData {
-    UrlData {
-        name: n,
-        url: u,
-        tags: t,
+pub fn add_url_data(name: String, url: String, tag_name: String, existing_urls: &mut Vec<UrlData>) {
+    let mut new_url_data = UrlData {
+        name,
+        url,
+        tags: Vec::new()
+    };
+    for url in existing_urls.iter_mut() {
+        if new_url_data == *url {
+            url.add_tag(tag_name);
+            return;
+        }
     }
+    new_url_data.add_tag(tag_name);
+    existing_urls.push(new_url_data);
+
 }
 
 impl UrlData {
     pub fn add_tag(&mut self, tag: String) {
         self.tags.push(tag)
     }
-
-    fn calculate_url_hash<UrlData: Hash>(&self) -> u64 {
-        let mut h = DefaultHasher::new();
-        self.hash(&mut h);
-        h.finish()
-    }
 }
 
 
-
-impl Hash for UrlData {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-        self.url.hash(state);
+impl PartialEq<Self> for UrlData {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.url == other.url
     }
 }
-
-// impl AsRef<[u8]> for UrlData{
-//     fn as_ref(&self) -> &[u8] {
-//         let encoded = serde_json::to_string(&self).unwrap();
-//         encoded.as_bytes()
-//     }
-// }
