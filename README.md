@@ -1,2 +1,2 @@
 # url-organizer
-url organizer for bookmarks with duplicate bookmarks in multiple folders
+url organizer written in rust for organizing bookmarks with the ability to add tags
