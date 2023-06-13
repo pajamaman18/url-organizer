@@ -7,20 +7,27 @@ use crate::url_struct::UrlData;
 
 mod url_struct;
 
-fn main(){
+pub fn main(){
     let parsed_urls :Vec<UrlData> = parse_files_into_data("src/url_files/".to_string());
-    save_to_file("test-file", parsed_urls).expect("saving to file errored");
-    println!("{:?}", read_from_parsed_file("test-file"))
-
+    save_to_file("test-file", &parsed_urls).expect("saving to file errored");
+    // println!("{:?}", read_from_parsed_file("test-file"))
+    get_url(&"google".to_string(), &parsed_urls);
+    println!("{:?}", parsed_urls);
 }
 
-fn save_to_file(filename: &str, url_data: Vec<UrlData>) -> std::io::Result<()> {
+pub fn get_url(url_name: &String, urls: &Vec<UrlData>){
+    let filtered_urls: Vec<&UrlData> = urls.iter().filter(|&u| u.has_url(url_name)).collect::<Vec<&UrlData>>();
+    println!("{:?}", filtered_urls)
+}
+
+
+pub fn save_to_file(filename: &str, url_data: &Vec<UrlData>) -> std::io::Result<()> {
     let contents = serde_json::to_string(&url_data).unwrap();
     // println!("{:?}", contents);
-    fs::write("src/parsed_data/".to_string() + filename, contents)
+    fs::write("src/parsed_data/".to_string() + filename + ".json", contents)
 }
 
-fn read_from_parsed_file(filename: &str) -> Vec<UrlData>{
+pub fn read_from_parsed_file(filename: &str) -> Vec<UrlData>{
     let byte_data = fs::read("src/parsed_data/".to_string() + filename).expect("file reading went wrong");
     let s = match String::from_utf8(byte_data){
         Ok(v) => v,
@@ -47,7 +54,7 @@ fn read_from_parsed_file(filename: &str) -> Vec<UrlData>{
 /// ```
 ///
 /// ```
-fn parse_files_into_data(path: String) -> Vec<UrlData>{
+pub fn parse_files_into_data(path: String) -> Vec<UrlData>{
     let mut url_data: Vec<UrlData> = Vec::new();
     let dir_path = glob(&*(path + "*")).expect("glob didn't find file");
     for glob_path in dir_path{
@@ -78,4 +85,3 @@ fn parse_files_into_data(path: String) -> Vec<UrlData>{
     }
     return url_data;
 }
-
