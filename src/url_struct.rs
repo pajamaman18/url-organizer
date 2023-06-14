@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UrlData {
     pub name: String,
     pub url: String,
-    pub tags: Vec<String>,
+    pub tags: HashSet<String>,
 }
 
 
@@ -27,10 +27,10 @@ pub struct UrlData {
 /// add_url_data("google", "https://www.google.com", "search", url_list);
 /// assert_eq!(url_list, [("google", "https://www.google.com", ["search"])])
 /// ```
-pub(crate) fn add_url_data(name: String, url: String, tag_name: String, existing_urls: &mut Vec<UrlData>) {
+pub(crate) fn add_url_data(name: &str, url: &str, tag_name: &str, existing_urls: &mut Vec<UrlData>) {
     let mut new_url_data = UrlData {
-        name,
-        url,
+        name: name.to_string(),
+        url: url.to_string() ,
         tags: HashSet::new()
     };
     for url in existing_urls.iter_mut() {
@@ -45,19 +45,19 @@ pub(crate) fn add_url_data(name: String, url: String, tag_name: String, existing
 }
 
 impl UrlData {
-    pub(crate) fn add_tag(&mut self, tag: String) {
-        self.tags.push(tag)
+    pub(crate) fn add_tag(&mut self, tag: &str) {
+        self.tags.insert(tag.to_string());
     }
 
-    pub(crate) fn contains_tag(self, tag: &String) -> bool {
+    pub(crate) fn contains_tag(&self, tag: &str) -> bool {
         self.tags.contains(tag)
     }
 
-    pub(crate) fn has_url(&self, url: &String) -> bool {
+    pub(crate) fn has_url(&self, url: &str) -> bool {
         self.url.contains(url)
     }
 
-    pub(crate) fn has_name(self, name: &String) -> bool {
+    pub(crate) fn has_name(&self, name: &str) -> bool {
         self.name.contains(name)
     }
 }
@@ -66,6 +66,17 @@ impl UrlData {
 impl PartialEq<Self> for UrlData {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.url == other.url
+    }
+}
+
+impl Clone for UrlData {
+    fn clone(&self) -> Self {
+        let new_set = self.tags.iter().map(|t| t.clone()).collect();
+        UrlData{
+            name: self.name.clone(),
+            url: self.url.clone(),
+            tags: new_set,
+        }
     }
 }
 
@@ -86,29 +97,29 @@ mod tests {
     #[test]
     fn test_has_url(){
         let url = setup();
-        assert!(url.clone().has_url(&"google".to_string()));
-        assert!(url.clone().has_url(&"www".to_string()));
-        assert!(url.clone().has_url(&"www.google.com".to_string()));
-        assert!(!url.has_url(&"facebook".to_string()));
+        assert!(url.clone().has_url("google"));
+        assert!(url.clone().has_url("www"));
+        assert!(url.clone().has_url("www.google.com"));
+        assert!(!url.has_url("facebook"));
     }
 
     #[test]
     fn test_has_name(){
         let url = setup();
-        assert!(url.clone().has_name(&"google".to_string()));
-        assert!(!url.clone().has_name(&"www".to_string()));
-        assert!(url.clone().has_name(&"go".to_string()));
-        assert!(!url.has_name(&"facebook".to_string()));
+        assert!(url.clone().has_name("google"));
+        assert!(!url.clone().has_name("www"));
+        assert!(url.clone().has_name("go"));
+        assert!(!url.has_name("facebook"));
     }
 
     #[test]
     fn test_contains_tag(){
         let mut url = setup();
-        assert!(!url.clone().contains_tag(&"google".to_string()));
-        assert!(!url.clone().contains_tag(&"www".to_string()));
-        assert!(url.clone().contains_tag(&"search".to_string()));
-        assert!(!url.clone().contains_tag(&"facebook".to_string()));
-        url.add_tag("corpo".to_string());
-        assert!(url.contains_tag(&"corpo".to_string()));
+        assert!(!url.clone().contains_tag("google"));
+        assert!(!url.clone().contains_tag("www"));
+        assert!(url.clone().contains_tag("search"));
+        assert!(!url.clone().contains_tag("facebook"));
+        url.add_tag("corpo");
+        assert!(url.contains_tag("corpo"));
     }
 }

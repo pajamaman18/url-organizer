@@ -38,10 +38,10 @@ pub fn read_from_parsed_file(filename: &str) -> UrlPool{
 /// ```
 ///
 /// ```
-pub fn parse_files_into_data(path: String) -> UrlPool{
+pub fn parse_files_into_data(path: &str) -> UrlPool{
     let mut url_pool: UrlPool = UrlPool::new();
     // search for all files in folder
-    let dir_path = glob(&*(path + "*")).expect("glob didn't find file");
+    let dir_path = glob(&*(path.to_string() + "*")).expect("glob didn't find file");
     // loop over every found file
     for glob_path in dir_path{
         match glob_path {
@@ -63,9 +63,9 @@ pub fn parse_files_into_data(path: String) -> UrlPool{
                             // run through list with steps of 2 for both name and url
                             for i in (0..split_strings.len()).step_by(2) {
                                 // add new url to list
-                                url_struct::add_url_data(split_strings[i].clone(), split_strings[&i + 1].clone(), tag_name.to_string(), &mut parsed_urls)
+                                url_struct::add_url_data(&split_strings[i].clone(), &split_strings[&i + 1].clone(), &tag_name.to_string(), &mut parsed_urls)
                             }
-                            url_pool.add_urls(parsed_urls)
+                            url_pool.add_urls(&mut parsed_urls)
                         }else{
                             println!("file on: {} is empty", filename);
                         }
