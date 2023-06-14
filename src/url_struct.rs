@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -8,11 +9,29 @@ pub struct UrlData {
 }
 
 
-pub fn add_url_data(name: String, url: String, tag_name: String, existing_urls: &mut Vec<UrlData>) {
+/// creates url object from given arguments and appends it to given vector, it will only update the tags list if the url is in the list
+///
+/// # Arguments
+///
+/// * `name`: the name of the url
+/// * `url`: the url of the link
+/// * `tag_name`: tag of the url
+/// * `existing_urls`: list of url structs
+///
+/// returns: ()
+///
+/// # Examples
+///
+/// ```
+/// let mut url_list = Vec::new();
+/// add_url_data("google", "https://www.google.com", "search", url_list);
+/// assert_eq!(url_list, [("google", "https://www.google.com", ["search"])])
+/// ```
+pub(crate) fn add_url_data(name: String, url: String, tag_name: String, existing_urls: &mut Vec<UrlData>) {
     let mut new_url_data = UrlData {
         name,
         url,
-        tags: Vec::new()
+        tags: HashSet::new()
     };
     for url in existing_urls.iter_mut() {
         if new_url_data == *url {
@@ -26,19 +45,19 @@ pub fn add_url_data(name: String, url: String, tag_name: String, existing_urls: 
 }
 
 impl UrlData {
-    pub fn add_tag(&mut self, tag: String) {
+    pub(crate) fn add_tag(&mut self, tag: String) {
         self.tags.push(tag)
     }
 
-    pub fn contains_tag(self, tag: &String) -> bool {
+    pub(crate) fn contains_tag(self, tag: &String) -> bool {
         self.tags.contains(tag)
     }
 
-    pub fn has_url(&self, url: &String) -> bool {
+    pub(crate) fn has_url(&self, url: &String) -> bool {
         self.url.contains(url)
     }
 
-    pub fn has_name(self, name: &String) -> bool {
+    pub(crate) fn has_name(self, name: &String) -> bool {
         self.name.contains(name)
     }
 }
@@ -55,11 +74,12 @@ mod tests {
     use super::*;
 
     fn setup() -> UrlData{
-        let url = UrlData {
+        let mut url = UrlData {
             name: "google".to_string(),
             url: "www.google.com".to_string(),
-            tags: vec!["search".to_string()],
+            tags: HashSet::new(),
         };
+        url.tags.insert("search".to_string());
         url
     }
 
