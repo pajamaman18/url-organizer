@@ -1,7 +1,8 @@
-use crate::url_struct::UrlData;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+use crate::url_struct::UrlData;
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct UrlPool {
     urls: Vec<UrlData>
 }
@@ -64,8 +65,9 @@ impl PartialEq<Self> for UrlPool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::url_struct;
+
+    use super::*;
 
     fn setup() -> UrlPool {
         let mut pool = UrlPool::new();
