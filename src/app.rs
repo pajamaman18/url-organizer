@@ -2,6 +2,7 @@ use std::fs::OpenOptions;
 use std::ops::Deref;
 
 use eframe::egui;
+use eframe::egui::{Key, trace};
 
 use crate::file_parsing;
 use crate::url_pool::UrlPool;
@@ -13,7 +14,9 @@ use crate::url_struct::UrlData;
 pub struct UrlOrganizerApp {
     urls: UrlPool,
     loaded_file: Option<String>,
-    requesting_input: bool
+    requesting_input: bool,
+    maximised: bool,
+    minimized: bool,
 }
 
 
@@ -34,12 +37,11 @@ impl UrlOrganizerApp {
 }
 
 
-
 impl eframe::App for UrlOrganizerApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { urls, loaded_file , requesting_input} = self;
+        let Self { urls, loaded_file, requesting_input, maximised , minimized} = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -50,35 +52,61 @@ impl eframe::App for UrlOrganizerApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
-                ui.menu_button("Options", |ui| {
-                    if ui.button("Quit").clicked() {
-                        _frame.close();
-                    }
+                ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         self.requesting_input = true;
+                        ui.close_menu()
                     }
                     if ui.button("load").clicked() {
                         if let Some(path) = rfd::FileDialog::new().pick_file() {
                             self.loaded_file = Some(path.display().to_string());
+                            ui.close_menu()
                         }
                     }
                 });
+                // add normal window movement
+                ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui| {
+                    if ui.button("𐄂").clicked() {
+                        _frame.close();
+                    }
+                    if ui.button("□").clicked() {
+                        if !self.maximised {
+                            _frame.set_maximized(true);
+                            self.maximised = true
+                        } else {
+                            _frame.set_maximized(false);
+                            self.maximised = false
+                        }
+                    }
+                    if ui.button("_").clicked() {
+                        if !self.minimized {
+                            _frame.set_minimized(true);
+                            self.minimized = true
+                        } else {
+                            _frame.set_minimized(false);
+                            self.minimized = false
+                        }
+                    }
+                })
             });
             if self.requesting_input {
-                egui::Window::new("input filename").
-                    show(ctx, |ui|{
+                egui::Window::new("input filename")
+                    .show(ctx, |ui| {
                         let mut filename = "";
                         ui.label("give name of file to be saved to ");
                         ui.text_edit_singleline(&mut filename);
-                        if !filename.is_empty(){
+                        if !filename.is_empty() {
                             file_parsing::save_to_file(filename, &urls).expect("file save failed");
                             ui.label("file saved to: {filename}");
                             self.requesting_input = false;
-                        }else{
+                        } else {
                             ui.label("empty file names are not allowed");
                             // self.requesting_input = false;
                         }
                     });
+                if ctx.input(|i| i.key_pressed(Key::Escape)){
+                    self.requesting_input = false;
+                }
             }
         });
 
