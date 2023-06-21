@@ -14,10 +14,10 @@ pub fn save_to_file(filename: &str, url_data: &UrlPool) -> std::io::Result<()> {
 }
 
 pub fn parse_random_file(filename: &str) -> Option<UrlPool> {
-    let extension = filename.rsplit('.').last()?;
+    let extension = filename.split('.').last()?;
     match extension {
         "json" => {
-          read_from_parsed_file(filename)
+            read_from_parsed_file(filename)
         },
         "txt" => {
             parse_files_into_data(filename)
@@ -27,7 +27,7 @@ pub fn parse_random_file(filename: &str) -> Option<UrlPool> {
 }
 
 pub fn read_from_parsed_file(filename: &str) -> Option<UrlPool>{
-    let byte_data = fs::read("src/parsed_data/".to_string() + filename).expect("file reading went wrong");
+    let byte_data = fs::read(filename).expect("file reading went wrong");
     let s = match String::from_utf8(byte_data){
         Ok(v) => v,
         Err(e) => panic!("not valid UTF-8 in file: {}", e)

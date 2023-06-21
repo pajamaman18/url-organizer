@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::os::unix::raw::uid_t;
 
 use eframe::egui;
-use eframe::egui::{Key, Pos2, trace};
+use eframe::egui::*;
 
 use crate::file_parsing;
 use crate::url_pool::UrlPool;
@@ -16,7 +16,7 @@ use crate::url_struct::UrlData;
 pub struct UrlOrganizerApp {
     urls: UrlPool,
     loaded_file: Option<String>,
-    requesting_input: bool,
+    saving_dialog: bool,
     maximised: bool,
     minimized: bool,
     name_to_save: String,
@@ -56,7 +56,7 @@ impl eframe::App for UrlOrganizerApp {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
-                        self.requesting_input = true;
+                        self.saving_dialog = true;
                         self.name_to_save = "".to_string();
                         ui.close_menu()
                     }
@@ -68,6 +68,7 @@ impl eframe::App for UrlOrganizerApp {
                                 Some(u) => self.urls = u,
                                 None => self.loaded_file = None
                             }
+                            // println!("{}", self.urls.get_all_urls().len());
                             ui.close_menu()
                         }
                     }
@@ -97,7 +98,7 @@ impl eframe::App for UrlOrganizerApp {
                     }
                 })
             });
-            if self.requesting_input {
+            if self.saving_dialog {
                 egui::Window::new("input filename")
                     .interactable(false)
                     .anchor(egui::Align2::CENTER_CENTER, egui::Vec2{ x: 0.0, y: 0.0 })
@@ -108,13 +109,13 @@ impl eframe::App for UrlOrganizerApp {
 
                     });
                 if ctx.input(|i| i.key_pressed(Key::Escape)){
-                    self.requesting_input = false;
+                    self.saving_dialog = false;
                 }
                 if ctx.input(|i| i.key_pressed(Key::Enter)){
                     if !self.name_to_save.is_empty() {
                         file_parsing::save_to_file(self.name_to_save.as_str(), &self.urls).expect("file save failed");
                         ui.label("file saved to: {filename}");
-                        self.requesting_input = false;
+                        self.saving_dialog = false;
                     } else {
                         ui.label("empty file names are not allowed");
                         // self.requesting_input = false;
@@ -156,50 +157,77 @@ impl eframe::App for UrlOrganizerApp {
 
             ui.heading("url organizer");
             let mut scroll_area = egui::ScrollArea::vertical()
-                .max_height(200.0)
+                .max_height(f32::INFINITY)
                 .auto_shrink([false; 2]);
-            let (current_scroll, max_scroll) = scroll_area
-                .show(ui, |ui| {
-                    for url_blob in self.urls.get_all_urls(){
-                        ui.horizontal(|ui| {
-                            ui.label(&url_blob.name);
-                            ui.separator();
-                            ui.label(&url_blob.url);
-                            ui.separator();
-                            ui.label(
-                                &url_blob.tags.iter()
-                                    .map(|s| &**s)
-                                    .collect::<Vec<&str>>()
-                                    .join(", ")
-                            );
+            let text_style = TextStyle::Body;
+            let row_height = ui.text_style_height(&text_style);
+            let url_list = self.urls.get_all_urls();
+            let num_rows = url_list.len();
+            let pad_size: usize = 30;
+            if num_rows > 0 {
+                ScrollArea::vertical().auto_shrink([false; 2]).show_rows(
+                    ui,
+                    row_height,
+                    num_rows,
+                    |ui, row_range| {
+                        for url_blob in url_list {
 
-                        });
-                    }
-                    // ui.vertical(|ui| {
-                    //     for item in 1..=50 {
-                    //         if item == self.track_item {
-                    //             let response =
-                    //                 ui.colored_label(egui::Color32::YELLOW, format!("This is item {}", item));
-                    //             response.scroll_to_me(self.tack_item_align);
-                    //         } else {
-                    //             ui.label(format!("This is item {}", item));
-                    //         }
-                    //     }
-                    // });
+                            ui.horizontal(|ui| {
+                                let name_clicked = ui.selectable_label(false, format_string(&url_blob.name, pad_size));
+                                ui.separator();
+                                let url_clicked = ui.selectable_label(false ,format_string(&url_blob.url, pad_size));
+                                ui.separator();
+                                let tag_clicked = ui.selectable_label(false ,
+                                    format_string(&url_blob.tags.iter()
+                                        .map(|s| &**s)
+                                        .collect::<Vec<&str>>()
+                                        .join(", "), 2*pad_size)
+                                );
+                                if name_clicked.clicked(){
+                                    ui.output(()).copied_text = String::from(&url_blob.name);
+                                }
+                                if url_clicked.clicked(){
+                                    ui.output(()).copied_text = String::from(&url_blob.url);
+                                }
+                                if tag_clicked.clicked(){
+                                    ui.output(()).copied_text = String::from(&url_blob.tags);
+                                }
+                            });
 
-                    let margin = ui.visuals().clip_rect_margin;
+                        }
+                    },
+                );
+            }
 
-                    let current_scroll = ui.clip_rect().top() - ui.min_rect().top() + margin;
-                    let max_scroll = ui.min_rect().height() - ui.clip_rect().height() + 2.0 * margin;
-                    (current_scroll, max_scroll)
-                })
-                .inner;
+
+            // let (current_scroll, max_scroll) = scroll_area
+            //     .show(ui, |ui| {
+            //
+            //         // ui.vertical(|ui| {
+            //         //     for item in 1..=50 {
+            //         //         if item == self.track_item {
+            //         //             let response =
+            //         //                 ui.colored_label(egui::Color32::YELLOW, format!("This is item {}", item));
+            //         //             response.scroll_to_me(self.tack_item_align);
+            //         //         } else {
+            //         //             ui.label(format!("This is item {}", item));
+            //         //         }
+            //         //     }
+            //         // });
+            //
+            //         let margin = ui.visuals().clip_rect_margin;
+            //
+            //         let current_scroll = ui.clip_rect().top() - ui.min_rect().top() + margin;
+            //         let max_scroll = ui.min_rect().height() - ui.clip_rect().height() + 2.0 * margin;
+            //         (current_scroll, max_scroll)
+            //     })
+            //     .inner;
             ui.separator();
 
-            ui.label(format!(
-                "Scroll offset: {:.0}/{:.0} px",
-                current_scroll, max_scroll
-            ));
+            // ui.label(format!(
+            //     "Scroll offset: {:.0}/{:.0} px",
+            //     current_scroll, max_scroll
+            // ));
 
 
             // match &self.loaded_file {
@@ -231,4 +259,14 @@ impl eframe::App for UrlOrganizerApp {
     // fn save(&mut self, storage: &mut dyn eframe::Storage) {
     //     eframe::set_value(storage, eframe::APP_KEY, self);
     // }
+}
+
+fn format_string(s: &String, length: usize) -> String {
+    let fs: String;
+    if s.len() <= length{
+        fs = format!("{:length$}", s.clone())
+    }else{
+        fs = s[..length+1].to_string()
+    }
+    fs
 }
