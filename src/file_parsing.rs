@@ -1,5 +1,6 @@
 use crate::url_struct::UrlData;
 use std::fs;
+use std::io::read_to_string;
 use glob::glob;
 use serde_json;
 use crate::url_pool::UrlPool;
@@ -12,14 +13,26 @@ pub fn save_to_file(filename: &str, url_data: &UrlPool) -> std::io::Result<()> {
     fs::write("src/parsed_data/".to_string() + filename + ".json", contents)
 }
 
-pub fn read_from_parsed_file(filename: &str) -> UrlPool{
+pub fn parse_random_file(filename: &str) -> Option<UrlPool> {
+    let extension = filename.rsplit('.').last()?;
+    match extension {
+        "json" => {
+          read_from_parsed_file(filename)
+        },
+        "txt" => {
+            parse_files_into_data(filename)
+        }
+        _ => None
+    }
+}
+
+pub fn read_from_parsed_file(filename: &str) -> Option<UrlPool>{
     let byte_data = fs::read("src/parsed_data/".to_string() + filename).expect("file reading went wrong");
     let s = match String::from_utf8(byte_data){
         Ok(v) => v,
         Err(e) => panic!("not valid UTF-8 in file: {}", e)
     };
-    let out = serde_json::from_str(&s).unwrap();
-    return out;
+    serde_json::from_str(&s).ok()
 }
 
 /// reads data from a file in the format:
@@ -38,7 +51,7 @@ pub fn read_from_parsed_file(filename: &str) -> UrlPool{
 /// ```
 ///
 /// ```
-pub fn parse_files_into_data(path: &str) -> UrlPool{
+pub fn parse_files_into_data(path: &str) -> Option<UrlPool>{
     let mut url_pool: UrlPool = UrlPool::new();
     // search for all files in folder
     let dir_path = glob(&*(path.to_string() + "*")).expect("glob didn't find file");
@@ -77,5 +90,5 @@ pub fn parse_files_into_data(path: &str) -> UrlPool{
             Err(e) => panic!("path borked: {:?}", e)
         }
     }
-    return url_pool;
+    return Some(url_pool);
 }

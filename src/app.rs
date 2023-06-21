@@ -1,8 +1,10 @@
 use std::fs::OpenOptions;
+use std::net::ToSocketAddrs;
 use std::ops::Deref;
+use std::os::unix::raw::uid_t;
 
 use eframe::egui;
-use eframe::egui::{Key, trace};
+use eframe::egui::{Key, Pos2, trace};
 
 use crate::file_parsing;
 use crate::url_pool::UrlPool;
@@ -17,6 +19,7 @@ pub struct UrlOrganizerApp {
     requesting_input: bool,
     maximised: bool,
     minimized: bool,
+    name_to_save: String,
 }
 
 
@@ -36,12 +39,11 @@ impl UrlOrganizerApp {
     }
 }
 
-
 impl eframe::App for UrlOrganizerApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { urls, loaded_file, requesting_input, maximised , minimized} = self;
+        // let Self { urls, loaded_file, requesting_input, maximised , minimized} = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -55,18 +57,24 @@ impl eframe::App for UrlOrganizerApp {
                 ui.menu_button("File", |ui| {
                     if ui.button("Save").clicked() {
                         self.requesting_input = true;
+                        self.name_to_save = "".to_string();
                         ui.close_menu()
                     }
                     if ui.button("load").clicked() {
                         if let Some(path) = rfd::FileDialog::new().pick_file() {
-                            self.loaded_file = Some(path.display().to_string());
+                            let string_path = path.display().to_string();
+                            self.loaded_file = Some(string_path.clone());
+                            match file_parsing::parse_random_file(&string_path) {
+                                Some(u) => self.urls = u,
+                                None => self.loaded_file = None
+                            }
                             ui.close_menu()
                         }
                     }
                 });
                 // add normal window movement
                 ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui| {
-                    if ui.button("𐄂").clicked() {
+                    if ui.button("x").clicked() {
                         _frame.close();
                     }
                     if ui.button("□").clicked() {
@@ -91,21 +99,26 @@ impl eframe::App for UrlOrganizerApp {
             });
             if self.requesting_input {
                 egui::Window::new("input filename")
+                    .interactable(false)
+                    .anchor(egui::Align2::CENTER_CENTER, egui::Vec2{ x: 0.0, y: 0.0 })
                     .show(ctx, |ui| {
-                        let mut filename = "";
                         ui.label("give name of file to be saved to ");
-                        ui.text_edit_singleline(&mut filename);
-                        if !filename.is_empty() {
-                            file_parsing::save_to_file(filename, &urls).expect("file save failed");
-                            ui.label("file saved to: {filename}");
-                            self.requesting_input = false;
-                        } else {
-                            ui.label("empty file names are not allowed");
-                            // self.requesting_input = false;
-                        }
+                        ui.add(egui::TextEdit::singleline(&mut self.name_to_save).desired_width(120.0));
+                        // ui.text_edit_singleline(&mut filename);
+
                     });
                 if ctx.input(|i| i.key_pressed(Key::Escape)){
                     self.requesting_input = false;
+                }
+                if ctx.input(|i| i.key_pressed(Key::Enter)){
+                    if !self.name_to_save.is_empty() {
+                        file_parsing::save_to_file(self.name_to_save.as_str(), &self.urls).expect("file save failed");
+                        ui.label("file saved to: {filename}");
+                        self.requesting_input = false;
+                    } else {
+                        ui.label("empty file names are not allowed");
+                        // self.requesting_input = false;
+                    }
                 }
             }
         });
@@ -142,6 +155,60 @@ impl eframe::App for UrlOrganizerApp {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
             ui.heading("url organizer");
+            let mut scroll_area = egui::ScrollArea::vertical()
+                .max_height(200.0)
+                .auto_shrink([false; 2]);
+            let (current_scroll, max_scroll) = scroll_area
+                .show(ui, |ui| {
+                    for url_blob in self.urls.get_all_urls(){
+                        ui.horizontal(|ui| {
+                            ui.label(&url_blob.name);
+                            ui.separator();
+                            ui.label(&url_blob.url);
+                            ui.separator();
+                            ui.label(
+                                &url_blob.tags.iter()
+                                    .map(|s| &**s)
+                                    .collect::<Vec<&str>>()
+                                    .join(", ")
+                            );
+
+                        });
+                    }
+                    // ui.vertical(|ui| {
+                    //     for item in 1..=50 {
+                    //         if item == self.track_item {
+                    //             let response =
+                    //                 ui.colored_label(egui::Color32::YELLOW, format!("This is item {}", item));
+                    //             response.scroll_to_me(self.tack_item_align);
+                    //         } else {
+                    //             ui.label(format!("This is item {}", item));
+                    //         }
+                    //     }
+                    // });
+
+                    let margin = ui.visuals().clip_rect_margin;
+
+                    let current_scroll = ui.clip_rect().top() - ui.min_rect().top() + margin;
+                    let max_scroll = ui.min_rect().height() - ui.clip_rect().height() + 2.0 * margin;
+                    (current_scroll, max_scroll)
+                })
+                .inner;
+            ui.separator();
+
+            ui.label(format!(
+                "Scroll offset: {:.0}/{:.0} px",
+                current_scroll, max_scroll
+            ));
+
+
+            // match &self.loaded_file {
+            //     Some(s) => {
+            //         ui.label(s.rsplit_once('/').unwrap().1);
+            //     }
+            //     None => {}
+            //     _ => {}
+            // };
             // ui.hyperlink("https://github.com/emilk/eframe_template");
             // ui.add(egui::github_link_file!(
             //     "https://github.com/emilk/eframe_template/blob/master/",

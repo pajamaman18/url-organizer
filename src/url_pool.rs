@@ -10,19 +10,20 @@ pub struct UrlPool {
 
 
 impl UrlPool {
-    pub fn get_url_urls(&self, url_name: &str) -> UrlPool {
-        let filtered_urls: Vec<&UrlData> = self.urls.iter().filter(|&u| u.has_url(url_name)).collect::<Vec<&UrlData>>();
-        Self::create_copy_from_reference(filtered_urls)
+    pub fn get_all_urls(&self) -> Vec<&UrlData> {
+        self.urls.iter().collect()
     }
 
-    pub fn get_name_urls(&self, name: &str) -> UrlPool {
-        let filtered_urls: Vec<&UrlData> = self.urls.iter().filter(|&u| u.has_name(name)).collect::<Vec<&UrlData>>();
-        Self::create_copy_from_reference(filtered_urls)
+    pub fn get_url_urls(&self, url_name: &str)-> Vec<&UrlData> {
+        self.urls.iter().filter(|&u| u.has_url(url_name)).collect::<Vec<&UrlData>>()
     }
 
-    pub fn get_tag_urls(&self, tag_name: &str) -> UrlPool {
-        let filtered_urls: Vec<&UrlData> = self.urls.iter().filter(|&u| u.contains_tag(tag_name)).collect::<Vec<&UrlData>>();
-        Self::create_copy_from_reference(filtered_urls)
+    pub fn get_name_urls(&self, name: &str)-> Vec<&UrlData> {
+        self.urls.iter().filter(|&u| u.has_name(name)).collect::<Vec<&UrlData>>()
+    }
+
+    pub fn get_tag_urls(&self, tag_name: &str)-> Vec<&UrlData> {
+        self.urls.iter().filter(|&u| u.contains_tag(tag_name)).collect::<Vec<&UrlData>>()
     }
 
     pub(crate) fn add_urls(&mut self, new_urls: &mut Vec<UrlData>){
@@ -80,37 +81,37 @@ mod tests {
     }
 
     #[test]
-    fn test_get_url_urls(){
+    fn test_get_url_urls() {
         let url_pool = setup();
         let subset = url_pool.get_url_urls(".com");
-        assert_eq!(url_pool, subset);
+        assert_eq!(url_pool.get_all_urls(), subset);
         let subset = url_pool.get_url_urls("a.com");
-        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[..1].to_vec()), subset);
+        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[..1].to_vec()).get_all_urls(), subset);
         let subset = url_pool.get_url_urls("z.com");
-        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[2..].to_vec()), subset);
+        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[2..].to_vec()).get_all_urls(), subset);
     }
 
     #[test]
-    fn test_get_name_urls(){
+    fn test_get_name_urls() {
         let url_pool = setup();
         let subset = url_pool.get_name_urls(".com");
-        assert_eq!(UrlPool::new(), subset);
+        assert_eq!(UrlPool::new().get_all_urls(), subset);
         let subset = url_pool.get_name_urls("");
-        assert_eq!(url_pool, subset);
+        assert_eq!(url_pool.get_all_urls(), subset);
         let subset = url_pool.get_name_urls("a");
-        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[..1].to_vec()), subset);
+        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[..1].to_vec()).get_all_urls(), subset);
         let subset = url_pool.get_name_urls("z");
-        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[2..].to_vec()), subset);
+        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[2..].to_vec()).get_all_urls(), subset);
     }
 
     #[test]
-    fn test_get_tag_urls(){
+    fn test_get_tag_urls() {
         let url_pool = setup();
         let subset = url_pool.get_tag_urls(".com");
-        assert_eq!(UrlPool::create_direct_copy(vec![]), subset);
+        assert_eq!(UrlPool::create_direct_copy(vec![]).get_all_urls(), subset);
         let subset = url_pool.get_tag_urls("first half");
-        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[..2].to_vec()), subset);
-        let subset = url_pool.get_tag_urls("last half");
-        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[2..].to_vec()), subset);
+        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[..2].to_vec()).get_all_urls(), subset);
+        let subset = url_pool.get_tag_urls("second half");
+        assert_eq!(UrlPool::create_direct_copy(url_pool.urls[2..].to_vec()).get_all_urls(), subset);
     }
 }
