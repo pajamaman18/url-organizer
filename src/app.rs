@@ -72,6 +72,18 @@ impl eframe::App for UrlOrganizerApp {
                             ui.close_menu()
                         }
                     }
+                    if ui.button("load folder").clicked(){
+                        if let Some(path) = rfd::FileDialog::new().pick_file() {
+                            let string_path = path.display().to_string().spl
+                            self.loaded_file = Some(string_path.clone());
+                            match file_parsing::parse_files_into_data(&string_path) {
+                                Some(u) => self.urls = u,
+                                None => self.loaded_file = None
+                            }
+                            // println!("{}", self.urls.get_all_urls().len());
+                            ui.close_menu()
+                        }
+                    }
                 });
                 // add normal window movement
                 ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui| {
@@ -184,13 +196,13 @@ impl eframe::App for UrlOrganizerApp {
                                         .join(", "), 2*pad_size)
                                 );
                                 if name_clicked.clicked(){
-                                    ui.output(()).copied_text = String::from(&url_blob.name);
+                                    ui.output_mut(|o| o.copied_text = String::from(&url_blob.name));
                                 }
                                 if url_clicked.clicked(){
-                                    ui.output(()).copied_text = String::from(&url_blob.url);
+                                    ui.output_mut(|o| o.copied_text = String::from(&url_blob.url));
                                 }
                                 if tag_clicked.clicked(){
-                                    ui.output(()).copied_text = String::from(&url_blob.tags);
+                                    ui.output_mut(|o| o.copied_text = String::from(&url_blob.tags.iter().map(|s| s.clone()).collect::<Vec<String>>().join(",")));
                                 }
                             });
 
